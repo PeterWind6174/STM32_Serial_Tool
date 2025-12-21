@@ -11,6 +11,7 @@
 #include <QTextCharFormat>
 #include <QColor>
 #include <QFont>
+#include <QProcessEnvironment>
 
 static QString ts() {
     return QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss");
@@ -59,6 +60,20 @@ MainWindow::MainWindow(QWidget *parent)
     // 进程
     m_proc = new QProcess(this);
     m_proc->setProcessChannelMode(QProcess::SeparateChannels);
+
+    // 补齐 GUI 环境缺失的 PATH（Homebrew on Apple Silicon）
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    QString path = env.value("PATH");
+
+    if (!path.contains("/opt/homebrew/bin"))
+        path = "/opt/homebrew/bin:" + path;
+
+    // 保底加上系统路径（可选但推荐）
+    if (!path.contains("/usr/bin"))
+        path += ":/usr/bin:/bin:/usr/sbin:/sbin";
+
+    env.insert("PATH", path);
+    m_proc->setProcessEnvironment(env);
 
     connect(m_proc, &QProcess::readyReadStandardOutput, this, &MainWindow::onProcReadyStdout);
     connect(m_proc, &QProcess::readyReadStandardError,  this, &MainWindow::onProcReadyStderr);
@@ -148,19 +163,51 @@ void MainWindow::onRefreshPorts() {
     const QString prev = currentSelectedPortPath();
 
     ui->comboBoxSerialPort->clear();
+
     const auto ports = QSerialPortInfo::availablePorts();
     for (const auto &p : ports) {
         const QString sys = p.systemLocation();
+
+        // 1) 只保留 /dev/cu.*（过滤所有 /dev/tty.*）
+        if (!sys.startsWith("/dev/cu.")) {
+            continue;
+        }
+
+        // 2) 过滤掉 debug-console、蓝牙伪串口
+        if (sys.contains("debug-console", Qt::CaseInsensitive)) {
+            continue;
+        }
+        if (sys.contains("Bluetooth-Incoming-Port", Qt::CaseInsensitive)) {
+            continue;
+        }
+
         const QString desc = p.description().isEmpty() ? "No description" : p.description();
-        ui->comboBoxSerialPort->addItem(QString("%1  (%2)").arg(sys, desc), sys);
+        const QString label = QString("%1  (%2)").arg(sys, desc);
+
+        ui->comboBoxSerialPort->addItem(label, sys);
     }
 
+    // 3) 恢复之前选择
     if (!prev.isEmpty()) {
         for (int i = 0; i < ui->comboBoxSerialPort->count(); ++i) {
             if (ui->comboBoxSerialPort->itemData(i).toString() == prev) {
                 ui->comboBoxSerialPort->setCurrentIndex(i);
                 break;
             }
+        }
+    }
+
+    // 4) 如果没有之前选择，优先自动选中 usbserial（你这类 USB-UART 最常见）
+    if (ui->comboBoxSerialPort->currentIndex() < 0) {
+        for (int i = 0; i < ui->comboBoxSerialPort->count(); ++i) {
+            const QString path = ui->comboBoxSerialPort->itemData(i).toString();
+            if (path.contains("usbserial", Qt::CaseInsensitive)) {
+                ui->comboBoxSerialPort->setCurrentIndex(i);
+                break;
+            }
+        }
+        if (ui->comboBoxSerialPort->currentIndex() < 0 && ui->comboBoxSerialPort->count() > 0) {
+            ui->comboBoxSerialPort->setCurrentIndex(0);
         }
     }
 
@@ -220,7 +267,7 @@ void MainWindow::onFlash() {
 void MainWindow::startObjcopy(const QString &elfPath, const QString &binPath) {
     m_step = Step::Objcopy;
 
-    m_proc->setProgram("arm-none-eabi-objcopy");
+    m_proc->setProgram("/opt/homebrew/bin/arm-none-eabi-objcopy");
     m_proc->setArguments({ "-O", "binary", elfPath, binPath });
 
     appendOutputColored(QString("\n[%1] Running: arm-none-eabi-objcopy -O binary \"%2\" \"%3\"\n")
@@ -240,7 +287,7 @@ void MainWindow::startObjcopy(const QString &elfPath, const QString &binPath) {
 void MainWindow::startFlash(const QString &binPath, const QString &portPath) {
     m_step = Step::Flash;
 
-    m_proc->setProgram("stm32flash");
+    m_proc->setProgram("/opt/homebrew/bin/stm32flash");
     m_proc->setArguments({
         "-b", QString::number(m_currentBaud),
         "-w", binPath,
