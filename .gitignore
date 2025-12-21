@@ -1,0 +1,23 @@
+# macOS
+.DS_Store
+
+# Qt / CMake
+/build/
+/cmake-build-*/
+CMakeFiles/
+/CMakeCache.txt
+*.o
+*.obj
+*.user
+*.user.*
+CMakeLists.txt.user
+
+# 常见 IDE
+.vscode/
+.idea/
+.qtcreator/
+
+# 环境/敏感
+.env
+*.key
+*.pem
