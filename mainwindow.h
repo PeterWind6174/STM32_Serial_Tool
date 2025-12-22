@@ -2,6 +2,8 @@
 
 #include <QMainWindow>
 #include <QProcess>
+#include <QtSerialPort/QSerialPort>
+#include "serial_terminal_widget.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -39,6 +41,21 @@ private:
     void appendOutputColored(const QString &text, const QColor &color);
     int currentBaudRate() const;
     int m_currentBaud = 115200;
+
+    SerialTerminalWidget *m_serialTerminal = nullptr;
+
+    // 是否启用“一键烧录并复位运行”
+    bool m_autoBootRun = false;
+
+    // 收集当前 QProcess 输出（用于解析芯片信息）
+    QString m_procAllText;
+
+    // 控制线序列（RTS=BOOT0, DTR=RESET）
+    bool enterBootloaderByDtrRts(const QString &portPath, int baud, QString *err = nullptr);
+    bool resetToRunByDtrRts(const QString &portPath, int baud, QString *err = nullptr);
+
+    // 从 stm32flash 输出里提取信息（Device ID / Bootloader ver 等）
+    void appendChipInfoFromText(const QString &text);
 
 private:
     Ui::MainWindow *ui = nullptr;
