@@ -87,6 +87,16 @@ MainWindow::MainWindow(QWidget *parent)
                 });
     }
 
+    // Plot Tab (shared serial)
+    if (ui->tabPlot) {
+        m_plotWidget = new PlotWidget(ui->tabPlot, this);
+
+        if (m_serialTerminal) {
+            connect(m_serialTerminal, &SerialTerminalWidget::rxLineReceived,
+                    m_plotWidget, &PlotWidget::onSerialLineReceived);
+        }
+    }
+
     connect(ui->actionAbout_2, &QAction::triggered, this, [this]() {
         AboutDialog dlg(this);
         dlg.exec();

@@ -64,7 +64,8 @@ private:
     // port list filter (macOS)
     static bool acceptPortPath(const QString &sysPath);
 
-private:
+    QByteArray m_rxLineBuf;              // NEW: buffer for assembling lines
+    void emitLinesFromRxBytes(const QByteArray &data); // NEW
     // UI pointers (found by objectName)
     QComboBox   *m_portCombo = nullptr;
     QPushButton *m_refreshPortsBtn = nullptr;
@@ -111,4 +112,5 @@ private:
 
 signals:
     void statusMessage(const QString &msg, int timeoutMs = 0);
+    void rxLineReceived(const QString &line);
 };

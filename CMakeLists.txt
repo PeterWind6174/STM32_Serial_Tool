@@ -9,8 +9,8 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets SerialPort)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets SerialPort)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets SerialPort Charts)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets SerialPort Charts)
 
 set(PROJECT_SOURCES
         main.cpp
@@ -27,6 +27,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         resources.qrc
         serial_terminal_widget.h serial_terminal_widget.cpp
         aboutdialog.h aboutdialog.cpp aboutdialog.ui
+        plot_widget.h plot_widget.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET STM32_Serial_Tool APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -46,7 +47,7 @@ else()
     endif()
 endif()
 
-target_link_libraries(STM32_Serial_Tool PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::SerialPort)
+target_link_libraries(STM32_Serial_Tool PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::SerialPort Qt${QT_VERSION_MAJOR}::Charts)
 
 # --- macOS App Icon (.icns) ---
 set(APP_ICON "${CMAKE_CURRENT_SOURCE_DIR}/resources/AppIcon.icns")

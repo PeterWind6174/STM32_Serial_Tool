@@ -4,6 +4,7 @@
 #include <QProcess>
 #include <QtSerialPort/QSerialPort>
 #include "serial_terminal_widget.h"
+#include "plot_widget.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -56,6 +57,7 @@ private:
 
     // 从 stm32flash 输出里提取信息（Device ID / Bootloader ver 等）
     void appendChipInfoFromText(const QString &text);
+    PlotWidget *m_plotWidget = nullptr;
 
 private:
     Ui::MainWindow *ui = nullptr;

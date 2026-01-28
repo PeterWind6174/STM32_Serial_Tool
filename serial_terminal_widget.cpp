@@ -554,6 +554,10 @@ void SerialTerminalWidget::onReadyRead() {
     if (data.isEmpty()) return;
 
     appendMessage(data, /*isRx=*/true);
+
+    // NEW: forward lines to PlotWidget
+    emitLinesFromRxBytes(data);
+    //qDebug() << "RAW BYTES" << data;
 }
 
 void SerialTerminalWidget::onSendOnce() {
@@ -660,5 +664,32 @@ void SerialTerminalWidget::onTimedSendTick() {
 void SerialTerminalWidget::closeIfOpen() {
     if (m_serial.isOpen()) {
         onClosePort();  // 你已有的关闭逻辑：close + stop timer + UI 状态
+    }
+}
+
+void SerialTerminalWidget::emitLinesFromRxBytes(const QByteArray &data) {
+    // normalize: \r\n -> \n, \r -> \n
+    QByteArray buf = data;
+    buf.replace("\r\n", "\n");
+    buf.replace('\r', '\n');
+
+    m_rxLineBuf.append(buf);
+
+    while (true) {
+        const int idx = m_rxLineBuf.indexOf('\n');
+        if (idx < 0) break;
+
+        QByteArray lineBytes = m_rxLineBuf.left(idx);
+        m_rxLineBuf.remove(0, idx + 1);
+
+        lineBytes = lineBytes.trimmed();
+        if (lineBytes.isEmpty()) continue;
+
+        emit rxLineReceived(QString::fromLatin1(lineBytes));
+    }
+
+    // 防止 MCU 一直不发 '\n' 导致 buffer 无限增长
+    if (m_rxLineBuf.size() > 1'000'000) {
+        m_rxLineBuf = m_rxLineBuf.right(200'000);
     }
 }
